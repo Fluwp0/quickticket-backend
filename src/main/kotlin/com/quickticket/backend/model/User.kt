@@ -2,7 +2,6 @@ package com.quickticket.backend.model
 
 import jakarta.persistence.*
 import java.time.Instant
-import jakarta.validation.constraints.Pattern
 
 @Entity
 @Table(
@@ -13,19 +12,14 @@ import jakarta.validation.constraints.Pattern
 )
 data class User(
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
 
     @Column(nullable = false)
     val name: String,
 
     @Column(nullable = false)
-    @field:Pattern(
-        regexp = "^[0-9]{7,8}-[0-9kK]\$",
-        message = "Formato de RUT inválido"
-    )
-    var rut: String,
+    val rut: String,
 
     @Column(nullable = false, unique = true)
     val email: String,
