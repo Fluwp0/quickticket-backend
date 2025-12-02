@@ -13,6 +13,30 @@ class UserService(
     private val userRepository: UserRepository
 ) {
 
+    fun validarRut(rut: String): Boolean {
+        val regex = Regex("^[0-9]{7,8}-[0-9kK]\$")
+
+        if (!regex.matches(rut)) return false
+
+        val parts = rut.split("-")
+        val number = parts[0].toIntOrNull() ?: return false
+        val dv = parts[1].lowercase()
+
+        var m = 0
+        var s = 1
+        var t = number
+
+        while (t > 0) {
+            s = (s + t % 10 * (9 - m % 6)) % 11
+            t /= 10
+            m++
+        }
+
+        val dvEsperado = if (s == 0) "k" else (s + 47).toChar().lowercase()
+
+        return dv == dvEsperado
+    }
+
     @Transactional
     fun register(request: RegisterRequest): UserResponse {
         val email = request.email.trim().lowercase()
