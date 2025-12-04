@@ -17,13 +17,23 @@ class CartService(
     private val productRepository: ProductRepository
 ) {
 
-    fun getCartForUser(email: String): List<CartItemResponse> =
-        cartItemRepository.findByUserEmail(email)
-            .map(CartItemResponse::fromEntity)
+    // Obtener carrito por email
+    fun getCart(email: String): List<CartItemResponse> {
+        val cleanEmail = email.trim().lowercase()
 
+        val user = userRepository.findByEmail(cleanEmail)
+            ?: throw IllegalArgumentException("Usuario no encontrado")
+
+        val items = cartItemRepository.findByUserEmail(cleanEmail)
+        return items.map { CartItemResponse.fromEntity(it) }
+    }
+
+    // Agregar producto al carrito
     @Transactional
     fun addItem(request: CartItemRequest): CartItemResponse {
-        val user = userRepository.findByEmail(request.userEmail)
+        val cleanEmail = request.userEmail.trim().lowercase()
+
+        val user = userRepository.findByEmail(cleanEmail)
             ?: throw IllegalArgumentException("Usuario no encontrado")
 
         val product = productRepository.findById(request.productId)
@@ -33,39 +43,50 @@ class CartService(
             throw IllegalArgumentException("La cantidad debe ser mayor a cero")
         }
 
-        val entity = CartItem(
-            user = user,
-            product = product,
-            quantity = request.quantity
-        )
+        val existing = cartItemRepository.findByUserAndProduct(user, product)
+
+        val entity: CartItem = if (existing != null) {
+            existing.quantity += request.quantity
+            existing
+        } else {
+            CartItem(
+                user = user,
+                product = product,
+                quantity = request.quantity
+            )
+        }
 
         return CartItemResponse.fromEntity(cartItemRepository.save(entity))
     }
 
+    // Actualizar cantidad
     @Transactional
     fun updateItem(id: Long, request: CartItemUpdateRequest): CartItemResponse {
-        val item = cartItemRepository.findById(id)
-            .orElseThrow { IllegalArgumentException("Item no encontrado") }
-
         if (request.quantity <= 0) {
             throw IllegalArgumentException("La cantidad debe ser mayor a cero")
         }
 
-        item.quantity = request.quantity
-        return CartItemResponse.fromEntity(cartItemRepository.save(item))
+        val entity = cartItemRepository.findById(id)
+            .orElseThrow { IllegalArgumentException("Item no encontrado en el carrito") }
+
+        entity.quantity = request.quantity
+        return CartItemResponse.fromEntity(cartItemRepository.save(entity))
     }
 
+    // Eliminar 1 ítem
     @Transactional
-    fun removeItem(id: Long) {
+    fun deleteItem(id: Long) {
         if (!cartItemRepository.existsById(id)) {
-            throw IllegalArgumentException("Item no encontrado")
+            throw IllegalArgumentException("Item no encontrado en el carrito")
         }
         cartItemRepository.deleteById(id)
     }
 
+    // Vaciar carrito de un usuario
     @Transactional
-    fun clearCartForUser(email: String) {
-        val items = cartItemRepository.findByUserEmail(email)
+    fun clearCart(email: String) {
+        val cleanEmail = email.trim().lowercase()
+        val items = cartItemRepository.findByUserEmail(cleanEmail)
         cartItemRepository.deleteAll(items)
     }
 }

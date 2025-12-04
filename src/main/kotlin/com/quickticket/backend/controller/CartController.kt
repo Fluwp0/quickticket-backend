@@ -13,47 +13,46 @@ class CartController(
     private val cartService: CartService
 ) {
 
-    // Obtener carrito del usuario (READ)
-    @GetMapping
-    fun getCart(@RequestParam email: String) =
-        ResponseEntity.ok(cartService.getCartForUser(email))
+    @GetMapping("/{email}")
+    fun getCart(@PathVariable email: String): ResponseEntity<Any> =
+        try {
+            ResponseEntity.ok(cartService.getCart(email))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf("error" to (e.message ?: "Error")))
+        }
 
-    // Agregar producto al carrito (CREATE)
     @PostMapping
-    fun addItem(@RequestBody request: CartItemRequest) =
+    fun addItem(@RequestBody request: CartItemRequest): ResponseEntity<Any> =
         try {
             ResponseEntity.ok(cartService.addItem(request))
         } catch (e: IllegalArgumentException) {
             ResponseEntity.badRequest().body(mapOf("error" to (e.message ?: "Error")))
         }
 
-    // Actualizar cantidad (UPDATE)
     @PutMapping("/{id}")
     fun updateItem(
         @PathVariable id: Long,
         @RequestBody request: CartItemUpdateRequest
-    ) =
+    ): ResponseEntity<Any> =
         try {
             ResponseEntity.ok(cartService.updateItem(id, request))
         } catch (e: IllegalArgumentException) {
             ResponseEntity.badRequest().body(mapOf("error" to (e.message ?: "Error")))
         }
 
-    // Eliminar item (DELETE)
     @DeleteMapping("/{id}")
-    fun removeItem(@PathVariable id: Long) =
+    fun deleteItem(@PathVariable id: Long): ResponseEntity<Any> =
         try {
-            cartService.removeItem(id)
+            cartService.deleteItem(id)
             ResponseEntity.noContent().build()
         } catch (e: IllegalArgumentException) {
             ResponseEntity.badRequest().body(mapOf("error" to (e.message ?: "Error")))
         }
 
-    // Vaciar carrito de un usuario
-    @DeleteMapping("/clear")
-    fun clearCart(@RequestParam email: String) =
+    @DeleteMapping("/clear/{email}")
+    fun clearCart(@PathVariable email: String): ResponseEntity<Any> =
         try {
-            cartService.clearCartForUser(email)
+            cartService.clearCart(email)
             ResponseEntity.noContent().build()
         } catch (e: IllegalArgumentException) {
             ResponseEntity.badRequest().body(mapOf("error" to (e.message ?: "Error")))
